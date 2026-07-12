@@ -123,12 +123,10 @@ for code, nom in filtered_compteurs.items():
     
     # Palette calquée sur l'application Chronos
     if code == COMPTEUR_FOCUS:
-        # Style "Bouton Principal / Alerte" (Inspiré du bleu Chronos)
         couleur_fond = "#E6EEFA"     # Bleu très clair pour le fond
         couleur_bordure = "#1A3263"  # Bleu nuit pour la bordure
         epaisseur_bordure = 3        # Plus épais pour le focus
     else:
-        # Style "Mes Soldes" (Inspiré du pavé Turquoise de l'image)
         couleur_fond = "#E0F2F1"     # Turquoise pastel/lumineux
         couleur_bordure = "#00A896"  # Turquoise vif pour la bordure
         epaisseur_bordure = 1
@@ -150,8 +148,8 @@ for code, nom in filtered_compteurs.items():
         font={
             'size': 16, 
             'face': 'Courier', 
-            'color': '#000000', # TEXTE NOIR PUR : Visibilité maximale
-            'bold': True        # En gras pour détacher le code du fond
+            'color': '#000000', # TEXTE NOIR PUR
+            'bold': True        
         }
     )
 
@@ -160,8 +158,6 @@ for source, target in filtered_edges:
     net.add_edge(source, target, color="#848484", arrows="to")
 
 # --- CONFIGURATION STRICTE SANS CAPRICE DE PYVIS ---
-# Ici, la stabilisation s'exécute à l'ouverture, puis la physique est coupée 
-# proprement côté navigateur grâce à l'événement de fin de stabilisation.
 net.set_options("""
 var options = {
   "physics": {
@@ -192,20 +188,77 @@ var options = {
 # Sauvegarde propre du fichier HTML
 net.save_graph(nom_fichier)
 
-# Injection JavaScript post-sauvegarde : Coupe la physique dès que la stabilisation HTML prend fin.
-# C'est la méthode 100% infaillible qui ne fait pas planter Python.
+# Injection HTML/CSS/JS post-sauvegarde pour l'écran de chargement personnalisé
 try:
     with open(nom_fichier, 'r', encoding='utf-8') as file:
         html_content = file.read()
     
-    # On greffe l'instruction d'arrêt de physique directement dans l'initialisation du réseau
-    js_fix = 'network.on("stabilizationIterationsDone", function () { network.setOptions({ physics: false }); });'
-    html_content = html_content.replace('drawGraph();', f'drawGraph();\n    {js_fix}')
+    # 1. Écran d'attente HTML & CSS (Style Espace Collaborateur Chronos)
+    ecran_chargement = """
+    <!-- Écran d'attente personnalisé -->
+    <div id="loading-screen" style="
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background-color: #ffffff;
+        z-index: 99999;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        transition: opacity 0.5s ease-on-out;
+    ">
+        <!-- Spinner d'attente Turquoise Chronos -->
+        <div style="
+            border: 6px solid #E0F2F1;
+            border-top: 6px solid #00A896;
+            border-radius: 50%;
+            width: 60px; height: 60px;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        "></div>
+        <h2 style="color: #1A3263; margin: 0; font-weight: 600;">Génération de la cartographie...</h2>
+        <p style="color: #848484; margin: 5px 0 0 0; font-size: 14px;">Calcul des liaisons entre les compteurs</p>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    """
+
+    # 2. Script JS pour masquer l'écran d'attente à la fin de la stabilisation
+    js_fix_avec_loader = """
+    network.on("stabilizationIterationsDone", function () {
+        // 1. Coupe la physique
+        network.setOptions({ physics: false });
+        
+        // 2. Fait disparaître l'écran de chargement en douceur
+        var loader = document.getElementById('loading-screen');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(function() {
+                loader.style.display = 'none';
+            }, 500); // Temps de la transition CSS
+        }
+    });
+    """
+
+    # Insertion de l'écran d'attente juste après l'ouverture de la balise body
+    html_content = html_content.replace('<body>', f'<body>\n{ecran_chargement}')
+    
+    # Remplacement de l'ancien arrêt de physique par notre version améliorée
+    html_content = html_content.replace('drawGraph();', f'drawGraph();\n    {js_fix_avec_loader}')
     
     with open(nom_fichier, 'w', encoding='utf-8') as file:
         file.write(html_content)
+
 except Exception as e:
-    print(f"⚠️ Note : Impossible d'injecter le verrouillage automatique ({e})")
+    print(f"⚠️ Note : Impossible d'injecter l'écran d'attente ({e})")
+
 
 # Déplacement du fichier généré vers le dossier cible défini par la variable
 path_destination = os.path.join(DOSSIER_SORTIE, nom_fichier)

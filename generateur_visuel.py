@@ -104,12 +104,12 @@ if COMPTEUR_FOCUS:
         changement = len(nodes_to_keep) > taille_initiale
     filtered_compteurs = {code: compteur_noms[code] for code in nodes_to_keep}
     filtered_edges = edges_to_keep
-    nom_fichier = f"carte_{COMPTEUR_FOCUS}.html"
+    nom_fichier = f"carte_du_compteur_{COMPTEUR_FOCUS}.html"
 else:
     print("🌐 [GLOBAL] Extraction complète de tous les compteurs.")
     filtered_compteurs = compteur_noms
     filtered_edges = all_edges
-    nom_fichier = "carte_globale_sirh.html"
+    nom_fichier = "carte_globale_des_compteurs.html"
 
 # 5. Construction du Graphe (PyVis)
 net = Network(height="850px", width="100%", directed=True, bgcolor="#ffffff", font_color="#000000")

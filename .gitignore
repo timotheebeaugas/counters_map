@@ -1,0 +1,12 @@
+# Ignorer l'environnement virtuel si jamais il réapparaît
+.venv/
+__pycache__/
+
+# Ignorer les rapports HTML générés pour ne pas surcharger le Git
+cartographies_generees/*.html
+
+# Ignorer TOUS les fichiers de données .d dans le dump
+dump_compteurs/*.d
+
+# SÉCURITÉ : Ne pas ignorer les fichiers .gitkeep pour que les dossiers restent sur Git
+!.gitkeep

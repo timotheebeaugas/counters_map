@@ -4,6 +4,9 @@ import sys
 import shutil
 from pyvis.network import Network
 
+# Importation des éléments HTML, CSS et JS déportés dans templates.py
+from templates import ECRAN_CHARGEMENT, PANEL_SELECTION, JS_INJECTION
+
 # ==============================================================================
 # CONFIGURATION DES DOSSIERS
 # ==============================================================================
@@ -14,7 +17,7 @@ path_master = os.path.join(DOSSIER_DUMP, "_gtgtpcpt.d")
 path_compt = os.path.join(DOSSIER_DUMP, "_gtcompt.d")
 path_formule = os.path.join(DOSSIER_DUMP, "_formule.d")
 
-# Capture du focus depuis le terminal
+# Capture du focus depuis le terminal (ex: .\run DCAH)
 COMPTEUR_FOCUS = None
 if len(sys.argv) > 1:
     COMPTEUR_FOCUS = sys.argv[1].strip().upper()
@@ -37,8 +40,8 @@ if COMPTEUR_FOCUS and COMPTEUR_FOCUS not in valid_codes:
     print(f"❌ Erreur : Le compteur '{COMPTEUR_FOCUS}' n'existe pas.")
     exit(1)
 
-# 2. Lecture du dictionnaire des noms
-compteur_noms = {}
+# 2. Lecture du dictionnaire des noms et des statuts (actif/inactif)
+compteur_infos = {}
 try:
     with open(path_compt, 'r', encoding='cp1252', errors='ignore') as f:
         content = f.read()
@@ -47,21 +50,39 @@ try:
         line_str = line.strip()
         if not line_str or not line_str.startswith('"'):
             continue
-        matches = re.findall(r'"([^"\\]*(?:\\.[^"\\]*)*)"', line_str)
-        if matches:
-            potential_code = matches[0].strip()
+        
+        # Capture robuste du préfixe : "CODE" "NOM" statut (yes/no)
+        match_prefix = re.match(r'^"([^"]*)"\s+"([^"]*)"\s+(yes|no)', line_str)
+        if match_prefix:
+            potential_code = match_prefix.group(1).strip()
             if potential_code in valid_codes:
-                if len(matches) >= 2:
-                    compteur_noms[potential_code] = matches[1].strip()
-                else:
-                    compteur_noms[potential_code] = potential_code
+                nom = match_prefix.group(2).strip()
+                statut_brut = match_prefix.group(3).strip().lower()
+                est_actif = (statut_brut == "yes")
+                
+                compteur_infos[potential_code] = {
+                    "nom": nom,
+                    "actif": est_actif
+                }
+        else:
+            # Fallback de sécurité si la ligne a une structure exotique
+            matches = re.findall(r'"([^"\\]*(?:\\.[^"\\]*)*)"', line_str)
+            if matches:
+                potential_code = matches[0].strip()
+                if potential_code in valid_codes:
+                    nom = matches[1].strip() if len(matches) >= 2 else potential_code
+                    compteur_infos[potential_code] = {
+                        "nom": nom,
+                        "actif": True  # Actif par défaut si indéterminable
+                    }
 except FileNotFoundError:
     print(f"❌ Erreur : Fichier des caractéristiques introuvable : {path_compt}")
     exit(1)
 
+# Remplissage par défaut pour les codes manquants dans le dictionnaire
 for code in valid_codes:
-    if code not in compteur_noms:
-        compteur_noms[code] = code
+    if code not in compteur_infos:
+        compteur_infos[code] = {"nom": code, "actif": True}
 
 # 3. Analyse des formules et liaisons
 all_edges = set()
@@ -102,12 +123,12 @@ if COMPTEUR_FOCUS:
                 nodes_to_keep.add(source)
                 edges_to_keep.add((source, target))
         changement = len(nodes_to_keep) > taille_initiale
-    filtered_compteurs = {code: compteur_noms[code] for code in nodes_to_keep}
+    filtered_compteurs = {code: compteur_infos[code] for code in nodes_to_keep}
     filtered_edges = edges_to_keep
     nom_fichier = f"carte_du_compteur_{COMPTEUR_FOCUS}.html"
 else:
     print("🌐 [GLOBAL] Extraction complète de tous les compteurs.")
-    filtered_compteurs = compteur_noms
+    filtered_compteurs = compteur_infos
     filtered_edges = all_edges
     nom_fichier = "carte_globale_des_compteurs.html"
 
@@ -117,30 +138,42 @@ net = Network(height="850px", width="100%", directed=True, bgcolor="#ffffff", fo
 # Utilisation de la physique par défaut pour les calculs initiaux
 net.barnes_hut()
 
-# Ajout des Nœuds - Stratégie "Interface Chronos" (Fonds clairs, texte noir)
-for code, nom in filtered_compteurs.items():
+# Ajout des Nœuds - Stratégie "Interface Chronos" (Fonds clairs, texte noir, grisage inactifs)
+for code, info in filtered_compteurs.items():
     label_visuel = f" {code} " 
+    nom = info["nom"]
+    actif = info["actif"]
     
-    # Palette calquée sur l'application Chronos
-    if code == COMPTEUR_FOCUS:
+    statut_texte = "Actif" if actif else "Inactif"
+    infobulle = f"Code : {code}\nNom  : {nom}\nStatut : {statut_texte}"
+    
+    # Palette calquée sur l'application Chronos (avec grisage des inactifs)
+    if not actif:
+        couleur_fond = "#F5F5F5"     # Gris très clair pour le fond
+        couleur_bordure = "#9E9E9E"  # Gris moyen pour la bordure
+        epaisseur_bordure = 1
+        couleur_police = "#9E9E9E"   # Texte grisé
+    elif code == COMPTEUR_FOCUS:
         couleur_fond = "#E6EEFA"     # Bleu très clair pour le fond
         couleur_bordure = "#1A3263"  # Bleu nuit pour la bordure
         epaisseur_bordure = 3        # Plus épais pour le focus
+        couleur_police = "#000000"
     else:
         couleur_fond = "#E0F2F1"     # Turquoise pastel/lumineux
         couleur_bordure = "#00A896"  # Turquoise vif pour la bordure
         epaisseur_bordure = 1
+        couleur_police = "#000000"
         
     net.add_node(
         code, 
         label=label_visuel, 
-        title=f"{code} - {nom}", 
+        title=infobulle, 
         shape="box", 
         borderWidth=epaisseur_bordure,
         color={
             "background": couleur_fond,
             "border": couleur_bordure,
-            "highlight": { # Couleur quand on clique dessus
+            "highlight": {
                 "background": "#FFEB3B",
                 "border": "#F57F17"
             }
@@ -148,7 +181,7 @@ for code, nom in filtered_compteurs.items():
         font={
             'size': 16, 
             'face': 'Courier', 
-            'color': '#000000', # TEXTE NOIR PUR
+            'color': couleur_police, 
             'bold': True        
         }
     )
@@ -157,7 +190,7 @@ for code, nom in filtered_compteurs.items():
 for source, target in filtered_edges:
     net.add_edge(source, target, color="#848484", arrows="to")
 
-# --- CONFIGURATION STRICTE SANS CAPRICE DE PYVIS ---
+# --- CONFIGURATION STRICTE SANS CAPRICE DE PYVIS (Avec multi-sélection activée) ---
 net.set_options("""
 var options = {
   "physics": {
@@ -179,6 +212,7 @@ var options = {
     "hover": true,
     "selectable": true,
     "selectConnectedEdges": true,
+    "multiselect": true,
     "dragNodes": true,
     "dragView": true
   }
@@ -188,79 +222,24 @@ var options = {
 # Sauvegarde propre du fichier HTML
 net.save_graph(nom_fichier)
 
-# Injection HTML/CSS/JS post-sauvegarde pour l'écran de chargement personnalisé
+# Injection HTML/CSS/JS post-sauvegarde (Simplifiée grâce aux variables importées)
 try:
     with open(nom_fichier, 'r', encoding='utf-8') as file:
         html_content = file.read()
     
-    # 1. Écran d'attente HTML & CSS (Style Espace Collaborateur Chronos)
-    ecran_chargement = """
-    <!-- Écran d'attente personnalisé -->
-    <div id="loading-screen" style="
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background-color: #ffffff;
-        z-index: 99999;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        transition: opacity 0.5s ease-on-out;
-    ">
-        <!-- Spinner d'attente Turquoise Chronos -->
-        <div style="
-            border: 6px solid #E0F2F1;
-            border-top: 6px solid #00A896;
-            border-radius: 50%;
-            width: 60px; height: 60px;
-            animation: spin 1s linear infinite;
-            margin-bottom: 20px;
-        "></div>
-        <h2 style="color: #1A3263; margin: 0; font-weight: 600;">Génération de la cartographie...</h2>
-        <p style="color: #848484; margin: 5px 0 0 0; font-size: 14px;">Calcul des liaisons entre les compteurs</p>
-    </div>
-
-    <style>
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-    </style>
-    """
-
-    # 2. Script JS pour masquer l'écran d'attente à la fin de la stabilisation
-    js_fix_avec_loader = """
-    network.on("stabilizationIterationsDone", function () {
-        // 1. Coupe la physique
-        network.setOptions({ physics: false });
-        
-        // 2. Fait disparaître l'écran de chargement en douceur
-        var loader = document.getElementById('loading-screen');
-        if (loader) {
-            loader.style.opacity = '0';
-            setTimeout(function() {
-                loader.style.display = 'none';
-            }, 500); // Temps de la transition CSS
-        }
-    });
-    """
-
-    # Insertion de l'écran d'attente juste après l'ouverture de la balise body
-    html_content = html_content.replace('<body>', f'<body>\n{ecran_chargement}')
+    # 1. Insertion de l'écran d'attente et du panneau de sélection après l'ouverture du body
+    html_content = html_content.replace('<body>', f'<body>\n{ECRAN_CHARGEMENT}\n{PANEL_SELECTION}')
     
-    # Remplacement de l'ancien arrêt de physique par notre version améliorée
-    html_content = html_content.replace('drawGraph();', f'drawGraph();\n    {js_fix_avec_loader}')
+    # 2. Remplacement de l'ancien arrêt de physique par le script JS complet (physique, loader et copie)
+    html_content = html_content.replace('drawGraph();', f'drawGraph();\n    {JS_INJECTION}')
     
     with open(nom_fichier, 'w', encoding='utf-8') as file:
         file.write(html_content)
 
 except Exception as e:
-    print(f"⚠️ Note : Impossible d'injecter l'écran d'attente ({e})")
+    print(f"⚠️ Note : Impossible d'injecter l'écran d'attente et les outils ({e})")
 
-
-# Déplacement du fichier généré vers le dossier cible défini par la variable
+# Déplacement du fichier généré vers le dossier de sortie ciblé
 path_destination = os.path.join(DOSSIER_SORTIE, nom_fichier)
 try:
     if not os.path.exists(DOSSIER_SORTIE):

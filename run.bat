@@ -37,9 +37,9 @@ echo.
 :: 3. Exécution du script Python
 echo [3/3] Génération du schéma interactif...
 if "%compteur%"=="" (
-    python generateur_visuel.py
+    python main.py
 ) else (
-    python generateur_visuel.py %compteur%
+    python main.py %compteur%
 )
 
 :: 4. Ouverture du dossier de résultats

@@ -41,7 +41,7 @@ Génère un graphe complet de tous les compteurs liés entre eux :
 Génère uniquement le sous-graphe des dépendances (directes et indirectes, ascendantes et descendantes) d'un compteur ciblé :
 
 ```
-.\\run DCAH
+.\\run CPT1
 ```
 
-*(Remplacez `DCAH` par le code du compteur souhaité) Le fichier de sortie sera disponible sous : `cartographies_generees/carte_du_compteur_DCAH.html`*
+*(Remplacez `CPT1` par le code du compteur souhaité) Le fichier de sortie sera disponible sous : `cartographies_generees/carte_du_compteur_CPT1.html`*

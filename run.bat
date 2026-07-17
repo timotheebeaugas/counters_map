@@ -28,7 +28,7 @@ echo.
 echo [2/3] Choix du mode d'affichage :
 echo ---------------------------------------------------------------------
 echo À blanc (appuyez juste sur Entrée) : Générer la carte GLOBALE
-echo Saisir un code (ex: Z009, TEFFJ)   : Générer le FOCUS du compteur
+echo Saisir un code (ex: CPT1, CPT2)   : Générer le FOCUS du compteur
 echo ---------------------------------------------------------------------
 set "compteur="
 set /p "compteur=Entrez votre choix : "

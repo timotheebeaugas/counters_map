@@ -2,10 +2,11 @@ import re
 import os
 import sys
 import shutil
+import json
 from pyvis.network import Network
 
 # Importation des éléments HTML, CSS et JS déportés dans templates.py
-from templates import ECRAN_CHARGEMENT, PANEL_SELECTION, JS_INJECTION
+from templates import ECRAN_CHARGEMENT, PANEL_SELECTION, JS_INJECTION, PANEL_RECHERCHE
 
 # ==============================================================================
 # CONFIGURATION DES DOSSIERS
@@ -17,10 +18,25 @@ path_master = os.path.join(DOSSIER_DUMP, "_gtgtpcpt.d")
 path_compt = os.path.join(DOSSIER_DUMP, "_gtcompt.d")
 path_formule = os.path.join(DOSSIER_DUMP, "_formule.d")
 
-# Capture du focus depuis le terminal (ex: .\run DCAH)
+# Capture du focus depuis le terminal (ex: .\run CPT1)
 COMPTEUR_FOCUS = None
 if len(sys.argv) > 1:
     COMPTEUR_FOCUS = sys.argv[1].strip().upper()
+
+def parse_progress_line(line):
+    """
+    Analyse une ligne de dump Progress (.d) pour extraire proprement tous les champs,
+    qu'ils soient entourés de guillemets (avec caractères échappés) ou bruts.
+    """
+    pattern = r'"([^"\\]*(?:\\.[^"\\]*)*)"|([^\s]+)'
+    fields = []
+    for match in re.finditer(pattern, line):
+        quoted, unquoted = match.groups()
+        if quoted is not None:
+            fields.append(quoted)
+        else:
+            fields.append(unquoted)
+    return fields
 
 # 1. Lecture de la liste Master
 valid_codes = set()
@@ -40,40 +56,34 @@ if COMPTEUR_FOCUS and COMPTEUR_FOCUS not in valid_codes:
     print(f"❌ Erreur : Le compteur '{COMPTEUR_FOCUS}' n'existe pas.")
     exit(1)
 
-# 2. Lecture du dictionnaire des noms et des statuts (actif/inactif)
+# 2. Lecture robuste du dictionnaire (Noms, statuts actifs et droits à l'index 83)
 compteur_infos = {}
 try:
     with open(path_compt, 'r', encoding='cp1252', errors='ignore') as f:
-        content = f.read()
-    lines = content.split('\n')
-    for line in lines:
-        line_str = line.strip()
-        if not line_str or not line_str.startswith('"'):
-            continue
-        
-        # Capture robuste du préfixe : "CODE" "NOM" statut (yes/no)
-        match_prefix = re.match(r'^"([^"]*)"\s+"([^"]*)"\s+(yes|no)', line_str)
-        if match_prefix:
-            potential_code = match_prefix.group(1).strip()
-            if potential_code in valid_codes:
-                nom = match_prefix.group(2).strip()
-                statut_brut = match_prefix.group(3).strip().lower()
-                est_actif = (statut_brut == "yes")
-                
-                compteur_infos[potential_code] = {
-                    "nom": nom,
-                    "actif": est_actif
-                }
-        else:
-            # Fallback de sécurité si la ligne a une structure exotique
-            matches = re.findall(r'"([^"\\]*(?:\\.[^"\\]*)*)"', line_str)
-            if matches:
-                potential_code = matches[0].strip()
+        for line in f:
+            line_str = line.strip()
+            if not line_str:
+                continue
+            
+            fields = parse_progress_line(line_str)
+            if fields:
+                potential_code = fields[0].strip()
                 if potential_code in valid_codes:
-                    nom = matches[1].strip() if len(matches) >= 2 else potential_code
+                    nom = fields[1].strip() if len(fields) > 1 else potential_code
+                    
+                    # Détermination du statut actif (Index 2)
+                    statut_brut = fields[2].strip().lower() if len(fields) > 2 else "yes"
+                    est_actif = (statut_brut == "yes")
+                    
+                    # Extraction et nettoyage du droit cible (Index 83)
+                    droit = fields[83].strip() if len(fields) > 83 else ""
+                    if droit == "?" or droit == '""':
+                        droit = ""
+                    
                     compteur_infos[potential_code] = {
                         "nom": nom,
-                        "actif": True  # Actif par défaut si indéterminable
+                        "actif": est_actif,
+                        "droit": droit
                     }
 except FileNotFoundError:
     print(f"❌ Erreur : Fichier des caractéristiques introuvable : {path_compt}")
@@ -82,7 +92,7 @@ except FileNotFoundError:
 # Remplissage par défaut pour les codes manquants dans le dictionnaire
 for code in valid_codes:
     if code not in compteur_infos:
-        compteur_infos[code] = {"nom": code, "actif": True}
+        compteur_infos[code] = {"nom": code, "actif": True, "droit": ""}
 
 # 3. Analyse des formules et liaisons
 all_edges = set()
@@ -138,14 +148,19 @@ net = Network(height="850px", width="100%", directed=True, bgcolor="#ffffff", fo
 # Utilisation de la physique par défaut pour les calculs initiaux
 net.barnes_hut()
 
-# Ajout des Nœuds - Stratégie "Interface Chronos" (Fonds clairs, texte noir, grisage inactifs)
+## Ajout des Nœuds - Stratégie "Interface Chronos" (Fonds clairs, texte noir, grisage inactifs)
 for code, info in filtered_compteurs.items():
     label_visuel = f" {code} " 
     nom = info["nom"]
     actif = info["actif"]
+    droit = info["droit"]
     
     statut_texte = "Actif" if actif else "Inactif"
+    
+    # Construction dynamique de l'infobulle
     infobulle = f"Code : {code}\nNom  : {nom}\nStatut : {statut_texte}"
+    if droit:
+        infobulle += f"\nDroit : {droit}"  # Ajout de la ligne Droit uniquement si présent
     
     # Palette calquée sur l'application Chronos (avec grisage des inactifs)
     if not actif:
@@ -158,7 +173,12 @@ for code, info in filtered_compteurs.items():
         couleur_bordure = "#1A3263"  # Bleu nuit pour la bordure
         epaisseur_bordure = 3        # Plus épais pour le focus
         couleur_police = "#000000"
-    else:
+    elif droit:                      # COMPTEUR DE DROIT ACTIF (Repérage discret Periwinkle)
+        couleur_fond = "#E8EAF6"     # Lavande/Indigo très doux pour le fond
+        couleur_bordure = "#3F51B5"  # Bleu periwinkle chic pour la bordure
+        epaisseur_bordure = 2        # Épaisseur intermédiaire subtile pour capter l'œil sans surcharger
+        couleur_police = "#000000"
+    else:                            # COMPTEUR CLASSIQUE ACTIF
         couleur_fond = "#E0F2F1"     # Turquoise pastel/lumineux
         couleur_bordure = "#00A896"  # Turquoise vif pour la bordure
         epaisseur_bordure = 1
@@ -222,16 +242,27 @@ var options = {
 # Sauvegarde propre du fichier HTML
 net.save_graph(nom_fichier)
 
+# 6. Préparation de la base de recherche locale pour l'autocomplétion
+search_data = []
+for code, info in filtered_compteurs.items():
+    search_data.append({
+        "code": code,
+        "nom": info["nom"],
+        "actif": info["actif"]
+    })
+
+js_search_database = f"const searchDatabase = {json.dumps(search_data, ensure_ascii=False)};"
+
 # Injection HTML/CSS/JS post-sauvegarde (Simplifiée grâce aux variables importées)
 try:
     with open(nom_fichier, 'r', encoding='utf-8') as file:
         html_content = file.read()
     
-    # 1. Insertion de l'écran d'attente et du panneau de sélection après l'ouverture du body
-    html_content = html_content.replace('<body>', f'<body>\n{ECRAN_CHARGEMENT}\n{PANEL_SELECTION}')
+    # 1. Insertion de l'écran d'attente, du panneau de sélection et du moteur de recherche
+    html_content = html_content.replace('<body>', f'<body>\n{ECRAN_CHARGEMENT}\n{PANEL_SELECTION}\n{PANEL_RECHERCHE}')
     
-    # 2. Remplacement de l'ancien arrêt de physique par le script JS complet (physique, loader et copie)
-    html_content = html_content.replace('drawGraph();', f'drawGraph();\n    {JS_INJECTION}')
+    # 2. Remplacement de l'ancien arrêt de physique par le script JS complet (physique, loader, copie et base de données)
+    html_content = html_content.replace('drawGraph();', f'{js_search_database}\n    drawGraph();\n    {JS_INJECTION}')
     
     with open(nom_fichier, 'w', encoding='utf-8') as file:
         file.write(html_content)

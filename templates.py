@@ -2,7 +2,7 @@
 # TEMPLATES VISUELS ET INJECTIONS JAVASCRIPT POUR L'INTERFACE DE CARTOGRAPHIE
 # ==============================================================================
 
-# 1. ÉCRAN D'ATTENTE (Style Espace Collaborateur Chronos)
+# 1. ÉCRAN D'ATTENTE (Style Espace Collaborateur Chronos avec Barre de Progression)
 ECRAN_CHARGEMENT = """
 <!-- Écran d'attente personnalisé -->
 <div id="loading-screen" style="
@@ -18,25 +18,36 @@ ECRAN_CHARGEMENT = """
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     transition: opacity 0.5s ease-out;
 ">
-    <!-- Spinner d'attente Turquoise Chronos -->
-    <div style="
-        border: 6px solid #E0F2F1;
-        border-top: 6px solid #00A896;
-        border-radius: 50%;
-        width: 60px; height: 60px;
-        animation: spin 1s linear infinite;
-        margin-bottom: 20px;
-    "></div>
     <h2 style="color: #1A3263; margin: 0; font-weight: 600;">Génération de la cartographie...</h2>
     <p style="color: #848484; margin: 5px 0 0 0; font-size: 14px;">Calcul des liaisons entre les compteurs</p>
+    
+    <!-- Conteneur externe de la barre de progression -->
+    <div style="
+        width: 320px;
+        height: 12px;
+        background-color: #E0F2F1;
+        border-radius: 6px;
+        margin-top: 25px;
+        overflow: hidden;
+        border: 1px solid #B2DFDB;
+    ">
+        <!-- Barre de progression interne dynamique -->
+        <div id="progress-bar-fill" style="
+            width: 0%;
+            height: 100%;
+            background-color: #00A896;
+            transition: width 0.1s ease-out;
+        "></div>
+    </div>
+    
+    <!-- Pourcentage de progression positionné juste en dessous -->
+    <div id="progress-percentage" style="
+        margin-top: 10px;
+        font-size: 16px;
+        font-weight: 700;
+        color: #1A3263;
+    ">0%</div>
 </div>
-
-<style>
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-</style>
 """
 
 # 2. PANNEAU FLOTTANT DE SÉLECTION ET COPIE
@@ -111,13 +122,119 @@ PANEL_SELECTION = """
 </div>
 """
 
-# 3. CODE JAVASCRIPT D'INJECTION POUR LE COMPORTEMENT ACTIF
+# 3. PANNEAU DE RECHERCHE INTELLIGENT CHRONOS
+PANEL_RECHERCHE = """
+<!-- Panneau de recherche flottant Chronos (en haut à droite) -->
+<div id="search-container" style="
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 340px;
+    box-sizing: border-box;
+    pointer-events: auto;
+    background: transparent;
+">
+    <!-- Barre de recherche -->
+    <div id="search-bar" style="
+        background: rgba(255, 255, 255, 0.98);
+        border: 2px solid #1A3263;
+        border-radius: 8px;
+        padding: 10px 12px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        transition: border-radius 0.1s ease;
+    ">
+        <input type="text" id="search-input" placeholder="Chercher un code ou un nom..." autocomplete="off" style="
+            flex: 1;
+            padding: 8px 12px;
+            border: 1px solid #cccccc;
+            border-radius: 4px;
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        " onfocus="this.style.borderColor='#1A3263'" onblur="this.style.borderColor='#cccccc'">
+        
+        <button id="search-btn" onclick="executeSearch()" style="
+            background-color: #1A3263;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 16px;
+            font-weight: bold;
+            font-size: 13px;
+            cursor: pointer;
+            transition: background-color 0.15s;
+        " onmouseover="this.style.backgroundColor='#00A896'" onmouseout="this.style.backgroundColor='#1A3263'">
+            Chercher
+        </button>
+    </div>
+    
+    <!-- Liste d'autocomplétion premium personnalisée -->
+    <div id="custom-search-results" style="
+        display: none;
+        background: white;
+        border: 1px solid #00A896;
+        border-top: none;
+        border-radius: 0 0 8px 8px;
+        margin-top: 1px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        max-height: 250px;
+        overflow-y: auto;
+        box-sizing: border-box;
+    "></div>
+</div>
+
+<style>
+    /* Style de la barre de scroll interne des suggestions */
+    #custom-search-results::-webkit-scrollbar {
+        width: 6px;
+    }
+    #custom-search-results::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    #custom-search-results::-webkit-scrollbar-thumb {
+        background: #00A896;
+        border-radius: 3px;
+    }
+</style>
+"""
+
+# 4. CODE JAVASCRIPT D'INJECTION POUR LE COMPORTEMENT ACTIF (AVEC RECHERCHE ET BARRE DE PROGRESSION)
 JS_INJECTION = """
+// Écoute de la progression physique en temps réel pour mettre à jour la barre et le pourcentage
+network.on("stabilizationProgress", function (params) {
+    var percentage = Math.round((params.iterations / params.total) * 100);
+    
+    // Mise à jour de la largeur de la barre de chargement
+    var progressBar = document.getElementById('progress-bar-fill');
+    if (progressBar) {
+        progressBar.style.width = percentage + '%';
+    }
+    
+    // Mise à jour du texte de pourcentage juste en dessous
+    var progressText = document.getElementById('progress-percentage');
+    if (progressText) {
+        progressText.innerText = percentage + '%';
+    }
+});
+
+// Écoute de la fin de la stabilisation
 network.on("stabilizationIterationsDone", function () {
-    // 1. Coupe la physique
+    // 1. Force l'affichage à 100% sur la barre et le texte
+    var progressBar = document.getElementById('progress-bar-fill');
+    if (progressBar) progressBar.style.width = '100%';
+    
+    var progressText = document.getElementById('progress-percentage');
+    if (progressText) progressText.innerText = '100%';
+
+    // 2. Coupe la physique globale pour figer les nœuds et éviter toute latence
     network.setOptions({ physics: false });
     
-    // 2. Fait disparaître l'écran de chargement en douceur
+    // 3. Fait disparaître l'écran de chargement en douceur
     var loader = document.getElementById('loading-screen');
     if (loader) {
         loader.style.opacity = '0';
@@ -125,9 +242,105 @@ network.on("stabilizationIterationsDone", function () {
             loader.style.display = 'none';
         }, 500);
     }
+    
+    // 4. Initialise le moteur de recherche d'autocomplétion premium
+    initCustomAutocomplete();
 });
 
-// Écoute de l'événement de sélection Vis.js
+// Écoute de l'événement de saisie clavier pour l'autocomplétion
+window.initCustomAutocomplete = function() {
+    var searchInput = document.getElementById('search-input');
+    var resultsBox = document.getElementById('custom-search-results');
+    
+    if (!searchInput || !resultsBox || typeof searchDatabase === 'undefined') return;
+    
+    searchInput.addEventListener('input', function() {
+        var query = searchInput.value.trim().toLowerCase();
+        resultsBox.innerHTML = ''; // Nettoyage
+        
+        if (!query) {
+            resultsBox.style.display = 'none';
+            document.getElementById('search-bar').style.borderRadius = '8px';
+            return;
+        }
+        
+        // Recherche insensible à la casse sur le code ou le nom
+        var matches = searchDatabase.filter(function(item) {
+            return item.code.toLowerCase().includes(query) || 
+                   item.nom.toLowerCase().includes(query);
+        });
+        
+        if (matches.length === 0) {
+            resultsBox.style.display = 'none';
+            document.getElementById('search-bar').style.borderRadius = '8px';
+            return;
+        }
+        
+        // Affiche au maximum les 10 meilleurs résultats pour garder une belle interface
+        matches.slice(0, 10).forEach(function(item) {
+            var row = document.createElement('div');
+            row.style.padding = '10px 14px';
+            row.style.cursor = 'pointer';
+            row.style.fontSize = '12px';
+            row.style.borderBottom = '1px solid #f0f0f0';
+            row.style.transition = 'background 0.15s, color 0.15s';
+            row.style.fontFamily = 'Segoe UI, sans-serif';
+            row.style.color = '#333333';
+            row.style.display = 'flex';
+            row.style.justifyContent = 'space-between';
+            row.style.alignItems = 'center';
+            
+            // Définition de la pastille Actif / Inactif selon l'état réel du compteur
+            var statusText = item.actif ? 'Actif' : 'Inactif';
+            var statusBg = item.actif ? '#E0F2F1' : '#EEEEEE';
+            var statusColor = item.actif ? '#00A896' : '#9E9E9E';
+            
+            // Format visuel de la ligne
+            row.innerHTML = '<span><strong style="color: #1A3263;">' + item.code + '</strong> - <span style="color: #555;">' + item.nom + '</span></span>' +
+                            '<span style="font-size: 10px; padding: 2px 6px; border-radius: 4px; background-color: ' + statusBg + '; color: ' + statusColor + '; font-weight: bold; transition: background 0.15s;">' + statusText + '</span>';
+            
+            // Événement au survol (style Chronos)
+            row.addEventListener('mouseover', function() {
+                row.style.backgroundColor = '#E0F2F1';
+                row.style.color = '#1A3263';
+                row.style.borderLeft = '3px solid #00A896';
+                row.style.paddingLeft = '11px'; // Ajustement pour compenser la bordure gauche de 3px
+            });
+            
+            row.addEventListener('mouseout', function() {
+                row.style.backgroundColor = 'transparent';
+                row.style.color = '#333333';
+                row.style.borderLeft = 'none';
+                row.style.paddingLeft = '14px';
+            });
+            
+            // Événement au clic sur un élément de la suggestion
+            row.addEventListener('click', function() {
+                searchInput.value = item.code + " - " + item.nom;
+                resultsBox.style.display = 'none';
+                executeSearch(); // Déclenche instantanément la recherche
+            });
+            
+            resultsBox.appendChild(row);
+        });
+        
+        // Rend le volet de suggestions visible avec des bords inférieurs arrondis pour fusionner avec la barre
+        resultsBox.style.display = 'block';
+        document.getElementById('search-bar').style.borderRadius = '8px 8px 0 0';
+        document.getElementById('search-bar').style.borderBottom = '1px solid #1A3263';
+    });
+    
+    // Ferme le volet de suggestions en cliquant en dehors de la boîte de recherche
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !resultsBox.contains(e.target)) {
+            resultsBox.style.display = 'none';
+            document.getElementById('search-bar').style.borderRadius = '8px';
+            document.getElementById('search-bar').style.borderBottom = '2px solid #1A3263';
+        }
+    });
+};
+
+// Écoute de l'événement de sélection Vis.js pour le panneau de copie
 network.on("select", function (params) {
     updateSelectionPanel();
 });
@@ -160,6 +373,83 @@ window.clearSelectionAndClose = function() {
     }
 };
 
+// Exécute la recherche par touche Entrée
+document.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        var activeEl = document.activeElement;
+        var searchInput = document.getElementById('search-input');
+        if (activeEl === searchInput) {
+            var resultsBox = document.getElementById('custom-search-results');
+            if (resultsBox) resultsBox.style.display = 'none';
+            executeSearch();
+        }
+    }
+});
+
+// Recherche visuelle et ciblage de caméra sur la carte
+window.executeSearch = function() {
+    var input = document.getElementById('search-input');
+    var searchBar = document.getElementById('search-bar');
+    if (!input || !searchBar) return;
+    
+    var query = input.value.trim();
+    if (!query) return;
+    
+    var targetCode = null;
+    
+    // 1. Découpage pour récupérer le code depuis le format "CODE - Nom"
+    var parts = query.split(" - ");
+    var potentialCode = parts[0].trim().toUpperCase();
+    
+    if (network.body.data.nodes.get(potentialCode)) {
+        targetCode = potentialCode;
+    } else {
+        // 2. Recherche textuelle globale insensible à la casse
+        var queryLower = query.toLowerCase();
+        var matched = searchDatabase.find(function(item) {
+            return item.code.toUpperCase() === query.toUpperCase() || 
+                   item.nom.toLowerCase().includes(queryLower);
+        });
+        if (matched) {
+            targetCode = matched.code;
+        }
+    }
+    
+    // Restaure le style normal de la barre de recherche
+    document.getElementById('custom-search-results').style.display = 'none';
+    searchBar.style.borderRadius = '8px';
+    searchBar.style.borderBottom = '2px solid #1A3263';
+    
+    if (targetCode) {
+        network.unselectAll();
+        
+        // Focus fluide
+        network.focus(targetCode, {
+            scale: 1.25,
+            animation: {
+                duration: 800,
+                easingFunction: "easeInOutQuad"
+            }
+        });
+        
+        // Sélectionne le nœud pour ouvrir le panneau de copie et appliquer le style jaune
+        network.selectNodes([targetCode]);
+        updateSelectionPanel();
+        
+        // Animation visuelle de succès (Vert) sur la barre
+        searchBar.style.borderColor = "#2e7d32";
+        setTimeout(function() {
+            searchBar.style.borderColor = "#1A3263";
+        }, 1500);
+    } else {
+        // Animation visuelle d'échec (Rouge) sur la barre
+        searchBar.style.borderColor = "#c62828";
+        setTimeout(function() {
+            searchBar.style.borderColor = "#1A3263";
+        }, 1500);
+    }
+};
+
 // Copie robuste vers le presse-papier compatible Iframe
 window.copySelectionToClipboard = function() {
     var textarea = document.getElementById('selection-text');
@@ -178,7 +468,7 @@ window.copySelectionToClipboard = function() {
                 btn.style.backgroundColor = '#00A896';
             }, 1200);
         } else {
-            alert('La copie automatique a échoué. Veuillez utiliser Ctrl+C.');
+            console.warn('La copie automatique a échoué.');
         }
     } catch (err) {
         console.error('Erreur lors de la copie', err);

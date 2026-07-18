@@ -58,7 +58,7 @@ ECRAN_CHARGEMENT = """
 </div>
 """
 
-# 2. PANEL DE SÉLECTION MULTIPLE ET COPIE RAPIDE
+# 2. PANNEAU FLOTTANT DE SÉLECTION ET COPIE
 PANEL_SELECTION = """
 <!-- Panneau flottant de sélection Chronos -->
 <div id="selection-panel" style="
@@ -130,7 +130,7 @@ PANEL_SELECTION = """
 </div>
 """
 
-# 3. PANNEAU DE RECHERCHE INTELLIGENT CHRONOS AVEC SA LÉGENDE INTERACTIVE
+# 3. PANNEAU DE RECHERCHE ET LÉGENDE INTERACTIVE
 PANEL_RECHERCHE = """
 <!-- Panneau de recherche flottant Chronos (en haut à droite) -->
 <div id="search-container" style="
@@ -196,75 +196,86 @@ PANEL_RECHERCHE = """
     "></div>
 </div>
 
-<!-- Légende Flottante et Rétractable Chronos (Placée en bas à droite) -->
-<div id="legend-panel" style="
+<!-- LÉGENDE INTERACTIVE RETRACTABLE (en bas à droite) -->
+<div id="graph-legend" style="
     position: fixed;
     bottom: 20px;
     right: 20px;
     z-index: 9998;
-    background: rgba(255, 255, 255, 0.96);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 280px;
+    background: rgba(255, 255, 255, 0.98);
     border: 2px solid #1A3263;
     border-radius: 8px;
-    padding: 12px;
     box-shadow: 0 4px 15px rgba(0,0,0,0.12);
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    width: 220px;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    user-select: none;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+    max-height: 40px; /* Rétrécie par défaut */
 ">
-    <!-- En-tête de la légende (cliquable pour plier/déplier) -->
-    <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleLegend()">
-        <h4 style="margin: 0; color: #1A3263; font-weight: 600; font-size: 13px;">Légende de la carte</h4>
-        <span id="legend-toggle-icon" style="font-size: 11px; color: #1A3263; font-weight: bold; transition: transform 0.2s; transform: rotate(0deg);">▲</span>
+    <!-- En-tête cliquable pour plier/déplier -->
+    <div id="legend-header" onclick="toggleLegend()" style="
+        background-color: #1A3263;
+        color: white;
+        padding: 10px 15px;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        user-select: none;
+    ">
+        <span>🎨 Légende des Compteurs</span>
+        <span id="legend-arrow" style="transition: transform 0.3s; transform: rotate(0deg);">&#9650;</span>
     </div>
-    
-    <!-- Corps de la légende -->
-    <div id="legend-content" style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px; transition: opacity 0.2s;">
-        <!-- Calcul Classique -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 24px; height: 16px; background-color: #E0F2F1; border: 1px solid #00A896; border-radius: 3px; box-sizing: border-box;"></div>
-            <span style="font-size: 11px; color: #424242; font-weight: 500;">Calcul Intermédiaire</span>
+
+    <!-- Contenu détaillé de la légende -->
+    <div style="padding: 15px 18px; display: flex; flex-direction: column; gap: 10px;">
+        <!-- Compteur standard -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 22px; height: 14px; background-color: #E0F2F1; border: 1px solid #00A896; border-radius: 3px;"></div>
+            <span style="font-size: 12px; color: #333;"><strong style="color: #00A896;">Calcul standard</strong> (Intermédiaire)</span>
         </div>
-        <!-- Droit -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 24px; height: 16px; background-color: #E8EAF6; border: 2px solid #3F51B5; border-radius: 3px; box-sizing: border-box;"></div>
-            <span style="font-size: 11px; color: #424242; font-weight: 500;">Alimente un Droit (RTT, CA...)</span>
+        
+        <!-- Compteur Alimentation Droit -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 22px; height: 14px; background-color: #E8EAF6; border: 2px solid #3F51B5; border-radius: 3px;"></div>
+            <span style="font-size: 12px; color: #333;"><strong style="color: #3F51B5;">Alimente un droit</strong> (RTT, CA...)</span>
         </div>
-        <!-- Paie -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 24px; height: 16px; background-color: #FFF3E0; border: 2px solid #FB8C00; border-radius: 3px; box-sizing: border-box;"></div>
-            <span style="font-size: 11px; color: #424242; font-weight: 500;">Alimente la Paie (Rubrique)</span>
+
+        <!-- Compteur de Paie -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 22px; height: 14px; background-color: #FFF3E0; border: 2px solid #FB8C00; border-radius: 3px;"></div>
+            <span style="font-size: 12px; color: #333;"><strong style="color: #FB8C00;">Terminal Paie</strong> (Rubrique exportée)</span>
         </div>
-        <!-- Focus -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 24px; height: 16px; background-color: #E6EEFA; border: 3px solid #1A3263; border-radius: 3px; box-sizing: border-box;"></div>
-            <span style="font-size: 11px; color: #424242; font-weight: 500;">Compteur Ciblé (Focus)</span>
+
+        <!-- Compteur Focus / Sélection -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 22px; height: 14px; background-color: #FFCDD2; border: 2px solid #C62828; border-radius: 3px;"></div>
+            <span style="font-size: 12px; color: #333;"><strong style="color: #C62828;">Focus actif / Clic</strong> (Ciblé)</span>
         </div>
-        <!-- Inactif -->
-        <div style="display: flex; align-items: center; gap: 10px;">
-            <div style="width: 24px; height: 16px; background-color: #F5F5F5; border: 1px solid #9E9E9E; border-radius: 3px; box-sizing: border-box;"></div>
-            <span style="font-size: 11px; color: #9E9E9E; font-weight: 500;">Compteur Inactif</span>
+
+        <!-- Compteur Inactif -->
+        <div style="display: flex; align-items: center; gap: 12px;">
+            <div style="width: 22px; height: 14px; background-color: #F5F5F5; border: 1px solid #9E9E9E; border-radius: 3px;"></div>
+            <span style="font-size: 12px; color: #848484;">Compteur désactivé / inactif</span>
         </div>
     </div>
 </div>
 
-<script>
-    // Fonction interactive pour plier/déplier la légende
-    window.toggleLegend = function() {
-        var content = document.getElementById('legend-content');
-        var icon = document.getElementById('legend-toggle-icon');
-        var panel = document.getElementById('legend-panel');
-        
-        if (content.style.display === 'none') {
-            content.style.display = 'flex';
-            icon.style.transform = 'rotate(0deg)';
-            panel.style.width = '220px';
+<script type="text/javascript">
+    // Fonction de pliage de la légende
+    function toggleLegend() {
+        var legend = document.getElementById('graph-legend');
+        var arrow = document.getElementById('legend-arrow');
+        if (legend.style.maxHeight === '40px' || legend.style.maxHeight === '') {
+            legend.style.maxHeight = '240px'; // Déplié
+            arrow.style.transform = 'rotate(180deg)';
         } else {
-            content.style.display = 'none';
-            icon.style.transform = 'rotate(180deg)';
-            panel.style.width = '150px';
+            legend.style.maxHeight = '40px'; // Plié
+            arrow.style.transform = 'rotate(0deg)';
         }
-    };
+    }
 </script>
 
 <style>
@@ -362,13 +373,12 @@ window.initCustomAutocomplete = function() {
             row.style.cursor = 'pointer';
             row.style.fontSize = '12px';
             row.style.borderBottom = '1px solid #f0f0f0';
-            row.style.transition = 'all 0.15s ease';
+            row.style.transition = 'background 0.15s, color 0.15s';
             row.style.fontFamily = 'Segoe UI, sans-serif';
             row.style.color = '#333333';
             row.style.display = 'flex';
             row.style.justifyContent = 'space-between';
             row.style.alignItems = 'center';
-            row.style.boxSizing = 'border-box';
             
             // Définition de la pastille Actif / Inactif selon l'état réel du compteur
             var statusText = item.actif ? 'Actif' : 'Inactif';
@@ -527,7 +537,7 @@ window.executeSearch = function() {
             }
         });
         
-        // Sélectionne le nœud pour ouvrir le panneau de copie et appliquer le style jaune
+        // Sélectionne le nœud pour ouvrir le panneau de copie et appliquer le style de surbrillance
         network.selectNodes([targetCode]);
         updateSelectionPanel();
         

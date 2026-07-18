@@ -56,7 +56,7 @@ if COMPTEUR_FOCUS and COMPTEUR_FOCUS not in valid_codes:
     print(f"❌ Erreur : Le compteur '{COMPTEUR_FOCUS}' n'existe pas.")
     exit(1)
 
-# 2. Lecture robuste du dictionnaire (Noms, statuts actifs et droits à l'index 83)
+# 2. Lecture robuste du dictionnaire (Noms, statuts, droits index 83 et rubriques index 15)
 compteur_infos = {}
 try:
     with open(path_compt, 'r', encoding='cp1252', errors='ignore') as f:
@@ -75,7 +75,12 @@ try:
                     statut_brut = fields[2].strip().lower() if len(fields) > 2 else "yes"
                     est_actif = (statut_brut == "yes")
                     
-                    # Extraction et nettoyage du droit cible (Index 83)
+                    # Extraction de la rubrique de paie (Index 15)
+                    rubrique_paie = fields[15].strip() if len(fields) > 15 else ""
+                    if rubrique_paie == "?" or rubrique_paie == '""':
+                        rubrique_paie = ""
+                    
+                    # Extraction du droit cible (Index 83)
                     droit = fields[83].strip() if len(fields) > 83 else ""
                     if droit == "?" or droit == '""':
                         droit = ""
@@ -83,6 +88,7 @@ try:
                     compteur_infos[potential_code] = {
                         "nom": nom,
                         "actif": est_actif,
+                        "rubrique_paie": rubrique_paie,
                         "droit": droit
                     }
 except FileNotFoundError:
@@ -92,7 +98,7 @@ except FileNotFoundError:
 # Remplissage par défaut pour les codes manquants dans le dictionnaire
 for code in valid_codes:
     if code not in compteur_infos:
-        compteur_infos[code] = {"nom": code, "actif": True, "droit": ""}
+        compteur_infos[code] = {"nom": code, "actif": True, "rubrique_paie": "", "droit": ""}
 
 # 3. Analyse des formules et liaisons
 all_edges = set()
@@ -148,19 +154,22 @@ net = Network(height="850px", width="100%", directed=True, bgcolor="#ffffff", fo
 # Utilisation de la physique par défaut pour les calculs initiaux
 net.barnes_hut()
 
-## Ajout des Nœuds - Stratégie "Interface Chronos" (Fonds clairs, texte noir, grisage inactifs)
+# Ajout des Nœuds avec notre charte de couleurs Chronos unifiée
 for code, info in filtered_compteurs.items():
     label_visuel = f" {code} " 
     nom = info["nom"]
     actif = info["actif"]
+    rubrique_paie = info["rubrique_paie"]
     droit = info["droit"]
     
     statut_texte = "Actif" if actif else "Inactif"
     
     # Construction dynamique de l'infobulle
     infobulle = f"Code : {code}\nNom  : {nom}\nStatut : {statut_texte}"
+    if rubrique_paie:
+         infobulle += f"\nRubrique Paie : {rubrique_paie}"
     if droit:
-        infobulle += f"\nDroit : {droit}"  # Ajout de la ligne Droit uniquement si présent
+        infobulle += f"\nDroit : {droit}"
     
     # Palette calquée sur l'application Chronos (avec grisage des inactifs)
     if not actif:
@@ -173,10 +182,15 @@ for code, info in filtered_compteurs.items():
         couleur_bordure = "#1A3263"  # Bleu nuit pour la bordure
         epaisseur_bordure = 3        # Plus épais pour le focus
         couleur_police = "#000000"
-    elif droit:                      # COMPTEUR DE DROIT ACTIF (Repérage discret Periwinkle)
-        couleur_fond = "#E8EAF6"     # Lavande/Indigo très doux pour le fond
+    elif rubrique_paie:              # COMPTEUR DE PAIE ACTIF (Orange Abricot / Ambre doux)
+        couleur_fond = "#FFF3E0"     # Abricot très doux et lumineux pour le fond
+        couleur_bordure = "#FB8C00"  # Orange ambre de la charte Chronos pour la bordure
+        epaisseur_bordure = 2        # Épaisseur intermédiaire marquée
+        couleur_police = "#000000"
+    elif droit:                      # COMPTEUR DE DROIT ACTIF (Bleu Periwinkle discret)
+        couleur_fond = "#E8EAF6"     # Lavande très doux pour le fond
         couleur_bordure = "#3F51B5"  # Bleu periwinkle chic pour la bordure
-        epaisseur_bordure = 2        # Épaisseur intermédiaire subtile pour capter l'œil sans surcharger
+        epaisseur_bordure = 2        # Épaisseur intermédiaire
         couleur_police = "#000000"
     else:                            # COMPTEUR CLASSIQUE ACTIF
         couleur_fond = "#E0F2F1"     # Turquoise pastel/lumineux
@@ -248,7 +262,9 @@ for code, info in filtered_compteurs.items():
     search_data.append({
         "code": code,
         "nom": info["nom"],
-        "actif": info["actif"]
+        "actif": info["actif"],
+        "rubrique_paie": info.get("rubrique_paie", ""),
+        "droit": info.get("droit", "")
     })
 
 js_search_database = f"const searchDatabase = {json.dumps(search_data, ensure_ascii=False)};"

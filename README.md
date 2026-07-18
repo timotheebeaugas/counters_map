@@ -14,6 +14,9 @@ counters_modeling/
 ├── run.bat <-- Lanceur générique ultra-rapide (ex: .\\run ou .\\run CODE)
 ├── README.md <-- Documentation du projet (ce fichier)
 │
+├── assets/                     <-- Ressources visuelles pour l'interface
+│   └── chronos.jpg             <-- Logo officiel pour l'écran d'accueil
+│
 ├── dump_compteurs/ <-- Dossier contenant vos fichiers sources de dump .d
 │ ├── _gtgtpcpt.d <-- Fichier master des types de compteurs
 │ ├── _gtcompt.d <-- Dictionnaire des libellés et caractéristiques

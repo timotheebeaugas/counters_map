@@ -124,7 +124,7 @@ try:
                 for token in tokens:
                     child_code = token.strip()
                     if child_code in valid_codes and child_code != parent_code:
-                        all_edges.add((parent_code, child_code))
+                        all_edges.add((child_code, parent_code))
 except FileNotFoundError:
     print(f"❌ Erreur : Fichier des formules introuvable : {path_formule}")
     exit(1)

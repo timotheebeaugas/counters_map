@@ -44,7 +44,7 @@ L'utilisation a été entièrement simplifiée grâce au lanceur run.bat. Lancez
 
 ## **💡 Fonctionnalités de l'interface**
 
-1. **Écran de chargement pro** : Affichage d'une barre de progression fluide avec pourcentage et intégration du logo officiel Chronos pendant la stabilisation du graphe.  
+1. **Écran de chargement pro** : Affichage d'une barre de progression fluide avec pourcentage pendant la stabilisation du graphe.  
 2. **Moteur de recherche intelligent** : Recherche dynamique par code ou libellé avec surbrillance et recentrage automatique de la caméra sur le compteur recherché.  
 3. **Panneau de sélection multiple** : Maintenez Ctrl / Cmd enfoncé sur la carte pour sélectionner plusieurs compteurs et copiez la liste de leurs codes en un seul clic. 
 4. **Légende interactive** : Une légende dépliable en bas à droite permet de vous repérer à tout moment sans encombrer l'espace de travail.

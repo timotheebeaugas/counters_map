@@ -36,7 +36,9 @@ Le graphe intègre une charte visuelle pensée pour l'analyse d'un consultant en
 
 L'utilisation a été entièrement simplifiée grâce au lanceur run.bat. Lancez simplement la commande dans votre console à la racine du projet :
 
-.\\run
+```bash
+.\run
+```
 
 *Le fichier de sortie sera généré sous : cartographies_generees/carte_globale_des_compteurs.html*
 

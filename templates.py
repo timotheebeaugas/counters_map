@@ -18,14 +18,6 @@ ECRAN_CHARGEMENT = """
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     transition: opacity 0.5s ease-out;
 ">
-    <!-- Logo officiel de l'application Chronos (sur fond blanc) -->
-    <img src="../assets/chronos.jpg" alt="Logo Chronos" style="
-        max-height: 135px;
-        max-width: 380px;
-        margin-bottom: 30px;
-        object-fit: contain;
-    ">
-
     <h2 style="color: #1A3263; margin: 0; font-weight: 600;">Génération de la cartographie...</h2>
     <p style="color: #848484; margin: 5px 0 0 0; font-size: 14px;">Calcul des liaisons entre les compteurs</p>
     

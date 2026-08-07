@@ -8,51 +8,37 @@ echo =====================================================================
 echo.
 
 :: 1. Vérification automatique de la bibliothèque pyvis
-echo [1/3] Vérification des dépendances Python...
+echo [1/2] Vérification des dépendances Python...
 python -c "import pyvis" 2>nul
 if %errorlevel% neq 0 (
-    echo     -^> Bibliothèque 'pyvis' manquante. Installation en cours...
-    pip install pyvis --quiet
-    if %errorlevel% neq 0 (
-        echo ❌ Erreur : Impossible d'installer 'pyvis'. Vérifiez votre connexion.
-        pause
-        exit /b
-    )
-    echo     -^> Installation de 'pyvis' réussie.
+echo     -^> Bibliothèque 'pyvis' manquante. Installation en cours...
+pip install pyvis --quiet
+if %errorlevel% neq 0 (
+echo ❌ Erreur : Impossible d'installer 'pyvis'. Vérifiez votre connexion.
+pause
+exit /b
+)
+echo     -^> Installation de 'pyvis' réussie.
 ) else (
-    echo     -^> Dépendances OK.
+echo     -^> Dépendances OK.
 )
 echo.
 
-:: 2. Demande du choix de mode
-echo [2/3] Choix du mode d'affichage :
-echo ---------------------------------------------------------------------
-echo À blanc (appuyez juste sur Entrée) : Générer la carte GLOBALE
-echo Saisir un code (ex: CPT1, CPT2)   : Générer le FOCUS du compteur
-echo ---------------------------------------------------------------------
-set "compteur="
-set /p "compteur=Entrez votre choix : "
-echo.
+:: 2. Exécution directe de la génération globale
+echo [2/2] Génération du schéma interactif global...
+python main.py
 
-:: 3. Exécution du script Python
-echo [3/3] Génération du schéma interactif...
-if "%compteur%"=="" (
-    python main.py
-) else (
-    python main.py %compteur%
-)
-
-:: 4. Ouverture du dossier de résultats
+:: 3. Ouverture du dossier de résultats
 if %errorlevel% equ 0 (
-    echo.
-    echo 🎉 Succès ! La cartographie a été générée.
-    echo Ouverture du dossier des résultats...
-    if exist "cartographies_generees" (
-        start "" "cartographies_generees"
-    )
+echo.
+echo 🎉 Succès ! La cartographie globale a été générée.
+echo Ouverture du dossier des résultats...
+if exist "cartographies_generees" (
+start "" "cartographies_generees"
+)
 ) else (
-    echo.
-    echo ❌ Une erreur est survenue pendant la génération du schéma.
+echo.
+echo ❌ Une erreur est survenue pendant la génération du schéma.
 )
 
 echo.

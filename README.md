@@ -10,11 +10,8 @@ counters\_modeling/
 │  
 ├── main.py                     \<-- Script principal (lecture des dumps, filtrage & construction du graphe)  
 ├── templates.py                \<-- Constantes d'interface (écran de chargement, panneau de sélection, légende & scripts JS)  
-├── run.bat                     \<-- Lanceur générique ultra-rapide (ex: .\\run ou .\\run CODE)  
+├── run.bat                     \<-- Lanceur automatique
 ├── README.md                   \<-- Documentation du projet (ce fichier)  
-│  
-├── assets/                     \<-- Ressources visuelles pour l'interface  
-│   └── chronos.jpg             \<-- Logo officiel pour l'écran d'accueil  
 │  
 ├── dump\_compteurs/             \<-- Dossier contenant vos fichiers sources de dump .d  
 │   ├── \_gtgtpcpt.d             \<-- Fichier master des types de compteurs  
@@ -35,27 +32,15 @@ Le graphe intègre une charte visuelle pensée pour l'analyse d'un consultant en
 
 ## **🚀 Utilisation**
 
-L'utilisation a été simplifiée grâce au lanceur générique run.bat. Ouvrez votre console à la racine du projet et utilisez l'une des commandes suivantes :
-
-### **1\. Générer la cartographie globale complète**
-
-Génère un graphe complet de tous les compteurs liés entre eux :
+L'utilisation a été entièrement simplifiée grâce au lanceur run.bat. Lancez simplement la commande dans votre console à la racine du projet :
 
 .\\run
 
-*Le fichier de sortie sera disponible sous : cartographies\_generees/carte\_globale\_des\_compteurs.html*
-
-### **2\. Générer une cartographie filtrée autour d'un compteur (Focus)**
-
-Génère uniquement le sous-graphe des dépendances (directes et indirectes, ascendantes et descendantes) d'un compteur ciblé :
-
-.\\run CPT1
-
-*(Remplacez CPT1 par le code du compteur souhaité)*. *Le fichier de sortie sera disponible sous : cartographies\_generees/carte\_du\_compteur\CPT1.html*
+*Le fichier de sortie sera généré sous : cartographies_generees/carte_globale_des_compteurs.html*
 
 ## **💡 Fonctionnalités de l'interface**
 
-1. **Écran de chargement pro** : Affichage d'une barre de progression fluide avec pourcentage et intégration du logo officiel Chronos pendant la stabilisation physique du graphe.  
-2. **Moteur de recherche intelligent** : Recherche dynamique par code ou libellé avec une surbrillance personnalisée (aux couleurs du type de compteur) lors du survol des suggestions.  
-3. **Panneau de sélection multiple** : Maintenez Ctrl / Cmd enfoncé pour sélectionner plusieurs compteurs et copiez la liste de leurs codes en un seul clic pour vos requêtes.  
-4. **Légende interactive** : Une légende dépliable en bas à droite vous permet de vous repérer à tout moment sans empiéter sur l'espace de travail.
+1. **Écran de chargement pro** : Affichage d'une barre de progression fluide avec pourcentage et intégration du logo officiel Chronos pendant la stabilisation du graphe.  
+2. **Moteur de recherche intelligent** : Recherche dynamique par code ou libellé avec surbrillance et recentrage automatique de la caméra sur le compteur recherché.  
+3. **Panneau de sélection multiple** : Maintenez Ctrl / Cmd enfoncé sur la carte pour sélectionner plusieurs compteurs et copiez la liste de leurs codes en un seul clic. 
+4. **Légende interactive** : Une légende dépliable en bas à droite permet de vous repérer à tout moment sans encombrer l'espace de travail.

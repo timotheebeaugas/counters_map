@@ -6,6 +6,7 @@ Il facilite l'analyse des liaisons de formules entre les différents compteurs, 
 
 ## **📂 Structure du projet**
 
+```
 counters\_modeling/  
 │  
 ├── main.py                     \<-- Script principal (lecture des dumps, filtrage & construction du graphe)  
@@ -19,6 +20,7 @@ counters\_modeling/
 │   └── \_formule.d              \<-- Liaisons et formules de calcul  
 │  
 └── cartographies\_generees/     \<-- Répertoire de sortie des schémas HTML interactifs
+```
 
 ## **🎨 Code Couleur Ergonomique (Légende intégrée)**
 
